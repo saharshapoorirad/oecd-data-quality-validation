@@ -31,6 +31,12 @@
 - `docs/case-study-cover.png`
 - `VALIDATION.md`
 
+## README figures
+
+- `figures/01_closure_status.png`
+- `figures/02_max_validation_differences.png`
+- `figures/03_review_cases.png`
+
 ## Intentionally excluded
 
 - `oecd_relabel_export_final_quarterly.R` and `oecd_relabel_inputs.xlsx` — superseded by the final Stage 1 quarterly script and controlled input workbook.

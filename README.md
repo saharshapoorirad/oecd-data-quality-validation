@@ -1,73 +1,127 @@
 # OECD Data Quality and Validation
 
-This project turns OECD national-accounts data for Italy into structured, reviewable outputs using R and Excel. It was developed through an Economics and Business internship and thesis project focused on data cleaning, classification, validation and stock-flow consistency.
+An R and Excel pipeline that transforms OECD national-accounts data for Italy into structured sector accounts and validated transaction-flow matrices.
+
+This project was developed through my Economics and Business internship and thesis work. It focuses on the part of data analysis that happens before modelling: understanding source structures, cleaning and relabelling variables, handling incomplete coverage, testing accounting consistency and documenting exceptions.
 
 <p align="center">
   <img src="docs/case-study-cover.png" width="620" alt="OECD Data Quality and Validation case-study cover">
 </p>
 
-**[View the four-page portfolio case study](docs/OECD_Data_Quality_Case_Study.pdf)**  
-**[Read the detailed validation summary](VALIDATION.md)**
+**[View the four-page portfolio case study](docs/OECD_Data_Quality_Case_Study.pdf)** · **[Read the detailed validation summary](VALIDATION.md)**
 
-## Project goal
+## Project at a glance
 
-Official OECD data are detailed, but they are not immediately ready for analysis. Annual and quarterly datasets use long labels, institutional-sector codes and different structures. This project builds a repeatable workflow that:
+| | |
+|---|---|
+| **Data source** | [OECD Data Explorer](https://data-explorer.oecd.org/) national accounts for Italy |
+| **Coverage** | 2010–2025 annually; 2010 Q1–2026 Q1 quarterly |
+| **Sectors** | Non-financial corporations, financial corporations, government, households and NPISH, Rest of World, and Total Economy |
+| **Tools** | R, RStudio, Excel and OECD SDMX |
+| **Main tasks** | Data retrieval, mapping, cleaning, validation, quality assurance and transaction-flow matrix construction |
 
-- maps OECD codes to clear project variables;
-- separates annual and quarterly processing;
-- creates sector and Total Economy outputs;
-- reorganizes the data into transaction-flow matrices;
-- tests row closure, net lending and Total Economy consistency;
-- records missing values, rounding differences and review cases instead of hiding them.
+## Why this project?
 
-## Workflow
+Official data are detailed, but not immediately ready for analysis. Annual and quarterly OECD datasets use different structures, long labels and institutional-sector codes. Some expected series are unavailable, and small discrepancies can appear across related accounting views.
+
+The pipeline turns those source files into consistent, reviewable outputs while keeping missing observations, rounding differences and review cases visible.
+
+## Pipeline
 
 ```mermaid
-flowchart LR
-    A[OECD source data] --> B[Map codes and sectors]
+flowchart TD
+    A[OECD SDMX data] --> B[Map codes and sectors]
     B --> C[Clean and relabel]
-    C --> D[Build sector outputs]
+    C --> D[Build sector accounts]
     D --> E[Construct TFM]
     E --> F[Run validation checks]
 ```
 
-## Repository contents
+## Pipeline components
 
-| Folder | Contents |
+| Script | Purpose |
 |---|---|
-| `R/` | Four final scripts for annual and quarterly Stage 1 and Stage 2 processing |
-| `data/` | Controlled input workbook containing the glossary, dictionaries, mapping and Total Economy labels |
-| `outputs/` | Final annual and quarterly Stage 1 and TFM workbooks |
-| `docs/` | Portfolio case study and cover image |
+| [`01_nonfinancial_annual.R`](R/01_nonfinancial_annual.R) | Retrieves annual OECD data, maps codes, creates sector and Total Economy tables, and produces QA sheets |
+| [`02_nonfinancial_quarterly.R`](R/02_nonfinancial_quarterly.R) | Processes non-seasonally-adjusted quarterly data and documents the General Government derivation used when direct S13 observations are unavailable |
+| [`03_tfm_annual.R`](R/03_tfm_annual.R) | Builds the annual transaction-flow matrix and tests row closure, net lending and Total Economy consistency |
+| [`04_tfm_quarterly.R`](R/04_tfm_quarterly.R) | Builds and validates the quarterly matrix while preserving unavailable production rows and review cases |
 
-The scripts run in this order:
+## Key results
 
-1. `R/01_nonfinancial_annual.R`
-2. `R/02_nonfinancial_quarterly.R`
-3. `R/03_tfm_annual.R`
-4. `R/04_tfm_quarterly.R`
+| Metric | Annual | Quarterly |
+|---|---:|---:|
+| Periods | 16 | 65 |
+| TFM row checks | 384 | 1,560 |
+| Maximum domestic net-lending difference | €0.2m | €0.3m |
+| Maximum Rest-of-World net-lending difference | €3.0m | €2.9m |
+| Maximum Total Economy difference | €3.0m | €0.1m |
+| Rows retained for review | 1 | 5 |
 
-## Evidence from the validated outputs
+No balancing residual or `KADJ` term is inserted to force agreement.
 
-- 16 annual years: 2010–2025
-- 65 quarterly periods: 2010 Q1–2026 Q1
-- Maximum domestic net-lending error: €0.2 million annually and €0.3 million quarterly
-- Explicit QA categories for observed closures, constructed closures, unavailable values, rounding differences and review rows
-- Quarterly General Government values are transparently derived from `S1 - S11 - S12 - S1M` when direct S13 observations are unavailable
-- No forced balancing adjustment or `KADJ` term
+## Validation results
+
+### Row-closure status
+
+![Annual and quarterly row-closure checks by validation status](figures/01_closure_status.png)
+
+### Maximum reconciliation differences
+
+![Maximum annual and quarterly validation differences](figures/02_max_validation_differences.png)
+
+### Review cases retained
+
+![Six row-closure residuals retained for review](figures/03_review_cases.png)
+
+## Repository structure
+
+```text
+oecd-data-quality-validation/
+├── data/          # Controlled glossary, dictionaries and mapping workbook
+├── docs/          # Portfolio case study
+├── figures/       # Validation charts displayed in this README
+├── outputs/       # Final Stage 1 and Stage 2 Excel workbooks
+├── R/             # Four annual and quarterly pipeline scripts
+├── README.md
+├── VALIDATION.md
+└── MANIFEST.md
+```
 
 ## How to run
 
-1. Clone or download the repository.
+1. Clone or download this repository.
 2. Open R or RStudio and set the working directory to the repository root.
-3. Run the Stage 1 annual or quarterly script. These scripts retrieve OECD data and write their results to `outputs/`.
-4. Run the corresponding Stage 2 script to build and validate the transaction-flow matrix.
+3. Run the relevant Stage 1 script, followed by its Stage 2 script:
 
-The scripts install any missing R packages automatically. Stage 1 requires an internet connection to retrieve OECD data. Because OECD data may be revised, a new run can differ from the frozen output workbooks included here.
+```r
+# Annual workflow
+source("R/01_nonfinancial_annual.R")
+source("R/03_tfm_annual.R")
 
-## Scope
+# Quarterly workflow
+source("R/02_nonfinancial_quarterly.R")
+source("R/04_tfm_quarterly.R")
+```
 
-This repository presents the validated non-financial accounts and transaction-flow matrix workflows. A separate financial-accounts module was explored during the wider thesis project, but it is excluded because a complete validated financial output and stock-flow reconciliation are not part of this case study.
+Stage 1 requires an internet connection to retrieve OECD data. New runs may differ from the frozen workbooks because the source data can be revised.
+
+### R packages
+
+`openxlsx`, `dplyr`, `tidyr`, `stringr`, `tibble`, `rsdmx`, `writexl` and `purrr`.
+
+The scripts check for missing packages and install them when required.
+
+## Data-quality decisions
+
+- Quarterly data use the non-seasonally-adjusted (`N`) series consistently.
+- When direct quarterly S13 observations are unavailable, General Government values are derived transparently as `S1 - S11 - S12 - S1M` and recorded in dedicated QA sheets.
+- Missing quarterly P1/P2 sector observations remain unavailable; they are not replaced with invented zeroes.
+- Small rounding differences and review rows remain visible in the output workbooks.
+- The separate financial-accounts experiment is excluded because a complete validated financial output and stock-flow reconciliation are outside this case study.
+
+## Limitations
+
+This is a data-processing and accounting-validation project, not a complete macroeconomic model. Results depend on OECD source coverage and can change when official data are revised. The quarterly General Government series includes a documented residual derivation where direct source observations are unavailable.
 
 ## Author
 
